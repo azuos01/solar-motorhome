@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Solar Motorhome – Projeto 24 V com gerador auxiliar</title>
-  <meta name="description" content="Projeto e calculadora de sistema fotovoltaico off-grid para motorhome: inversor híbrido 4,2 kVA 24 V, 2 módulos ZNShine 730 W, banco LiFePO4 24 V e gerador auxiliar.">
+  <meta name="description" content="Projeto e calculadora de sistema fotovoltaico off-grid para motorhome: inversor híbrido 4,2 kVA 24 V, 2 módulos ZNShine 730 W, bateria LiFePO4 24 V 314 Ah (8,03 kWh) e gerador auxiliar.">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -12,9 +12,10 @@
   <div class="wrap">
     <span class="brand">☀ Solar Motorhome</span>
     <nav aria-label="Seções">
-      <a href="#alerta">Alerta</a><a href="#resumo">Resumo</a><a href="#calc">Calculadora</a>
-      <a href="#baterias">Baterias</a><a href="#esquema">Esquema</a><a href="#gerador">Gerador</a>
-      <a href="#config">Configuração</a><a href="#riscos">Riscos</a><a href="#checklist">Checklist</a>
+      <a href="#sintese">Síntese</a><a href="#alerta">Alertas</a><a href="#resumo">Resumo</a><a href="#calc">Calculadora</a>
+      <a href="#carga">Carga</a><a href="#bifacial">Bifacial</a><a href="#geladeira">Geladeira 24 V</a><a href="#esquema">Esquema</a>
+      <a href="#gerador">Gerador</a><a href="#config">Config.</a><a href="#riscos">Riscos</a><a href="#especialista">Especialista</a>
+      <a href="#checklist">Checklist</a><a href="#fontes">Fontes</a>
     </nav>
     <button class="theme" id="themeBtn" type="button" aria-label="Alternar tema">Tema</button>
   </div>
@@ -23,21 +24,53 @@
 <main class="wrap">
   <div class="hero">
     <h1>Sistema solar para motorhome: melhor custo × benefício</h1>
-    <p>Inversor/carregador híbrido 4,2 kVA (barramento 24 V), 2 módulos bifaciais ZNShine 730 W, banco de lítio 24 V e interligação com gerador auxiliar. Todos os números abaixo são calculados no navegador a partir dos dados do manual, da NeoSolar e da Belenus.</p>
+    <p>Inversor/carregador híbrido 4,2 kVA (barramento 24 V), 2 módulos bifaciais ZNShine 730 W, uma bateria LiFePO4 24 V 314 Ah (8,03 kWh) e interligação com gerador auxiliar. Os números abaixo são calculados no navegador a partir dos dados do manual, da NeoSolar e da Inohouse.</p>
     <div class="badges">
-      <span class="badge">v1.0.0</span><span class="badge">Off-grid</span><span class="badge">24 Vdc / 220 Vac / 60 Hz</span>
+      <span class="badge">v2.0.0</span><span class="badge">Off-grid</span><span class="badge">24 Vdc / 220 Vac / 60 Hz</span>
       <span class="badge" id="badgeTests">testes automatizados no CI</span>
     </div>
   </div>
 
-  <section id="alerta">
-    <h2>Alerta crítico de compatibilidade</h2>
-    <div class="alert danger" role="alert">
-      <strong class="t">As três baterias da Belenus (48 V / 51,2 V) NÃO podem ser ligadas a este inversor.</strong>
-      <ul id="compatReasons"></ul>
-      <p style="margin:8px 0 0">Solução adotada no projeto: manter o inversor e os módulos e usar um <strong>banco LiFePO4 24 V (25,6 V) em paralelo</strong>. A alternativa (trocar o inversor por um de 48 V para usar a Secpower 5,12 kWh) está comparada na seção <a href="#baterias">Baterias</a>.</p>
+  <section id="sintese">
+    <h2>Síntese do trabalho</h2>
+    <p style="color:var(--muted);font-size:13px">Valores para as premissas padrão (HSP 5,0 kWh/m²/dia; cargas de exemplo de 2,05 kWh/dia). Os números da calculadora abaixo mudam se você editar as premissas; os testes automatizados verificam estes valores.</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="margin-top:0">1. Contexto</h3>
+        <p>Motorhome sem geração própria a bordo. O projeto parte de um inversor/carregador híbrido 4,2 kVA de <strong>barramento 24 V</strong> (manual ref. 371-00108-00) e do kit de de 2 módulos bifaciais ZNShine 730 W já definidos. As baterias inicialmente cogitadas (Belenus 48/51,2 V) eram incompatíveis com esse inversor e foram descartadas; a bateria em análise agora é a <strong>Inohouse LiFePO4 24 V 314 Ah (8,03 kWh)</strong>. Não há ligação à rede elétrica pública: o sistema é <em>off-grid</em> com gerador como reserva.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">2. Objetivo</h3>
+        <p>Projetar o sistema fotovoltaico de melhor custo-benefício com esses equipamentos, com esquema elétrico e interligação de gerador auxiliar, e responder: (a) como o sistema se comporta só com os 2 módulos e em quanto tempo a bateria nova carrega; (b) se uma geladeira 24 V pode ser ligada direto ao lado DC e quais os riscos; (c) qual o rendimento real dos módulos bifaciais no teto, sem geração no lado traseiro; e (d) quais pontos técnicos, normativos e de segurança ainda estavam descobertos.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">3. Método</h3>
+        <p>Leitura do manual do inversor (limites de tensão/corrente MPPT, programas de lítio, proteções), da ficha da bateria (Inohouse) e do módulo (NeoSolar/ficha). Modelo em JavaScript sem dependências (<code>src/calc.js</code>): string 2S1P contra a janela MPPT (60–500 V, 15 A); energia diária com dia senoidal e mistura de dias claros e nublados; cascata de perdas do rendimento real; simulação diária do estado de carga; dimensionamento de proteções DC/AC e do gerador. Cada regra é coberta por testes (<code>npm test</code>) executados no CI. Premissas sem fonte estão marcadas como assumidas. Consultoria teórica, sem medições em campo.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">4. Resultados</h3>
+        <ul>
+          <li><strong>Arranjo 2S1P:</strong> 1.460 Wp, Voc 99 V (≈108 V a −5 °C), potência utilizável ≈ 1.250 W (Vmp × 15 A); a Isc de 18,51 A excede os 15 A do inversor: confirmar com o fabricante.</li>
+          <li><strong>Rendimento real:</strong> ≈ 5,3 kWh/dia (PR ≈ 0,72; ≈ 3,6 kWh/kWp/dia) em vez dos 7,3 kWh nominais; ganho traseiro no teto ≈ 0%.</li>
+          <li><strong>Carga da bateria só com sol:</strong> de 10% a 100% em ≈ 1,4 dia sem consumo e ≈ 2,5 dias com 2,05 kWh/dia de cargas; corrente de carga ≈ 41 A (bem abaixo dos 100 A do BMS).</li>
+          <li><strong>Limite da bateria única:</strong> 100 A de descarga ⇒ ≈ 2,4 kW CA contínuos (o inversor tem 4,2 kW); suficiente para geladeira, TV, micro-ondas e A/C inverter de 9.000 BTU, não para tudo ao mesmo tempo.</li>
+          <li><strong>Gerador:</strong> carrega de 10% a 100% em ≈ 5 h a 60 A e ≈ 15 h a 20 A (prog. 02/11); 2–3 kVA basta se a corrente for limitada.</li>
+          <li><strong>Geladeira 24 V:</strong> viável, mas no barramento da bateria (o inversor não tem saída DC) com fusível próprio e corte por subtensão.</li>
+          <li><strong>Investimento estimado:</strong> ≈ R$ 16,9 mil (bateria R$ 8.499,99 à vista; demais itens estimados).</li>
+        </ul>
+      </div>
     </div>
+    <div class="card" style="margin-top:12px">
+      <h3 style="margin-top:0">5. Conclusão</h3>
+      <p>O conjunto <strong>inversor 24 V + 2 módulos 730 W + 1 bateria Inohouse 8,03 kWh</strong> é tecnicamente coerente e o de melhor custo-benefício com os equipamentos definidos: a bateria tem a tensão certa, capacidade para ≈ 3 dias de autonomia com as cargas de exemplo, e os 2 módulos repõem cerca de 2,5 kWh líquidos por dia útil. Ele funciona sem gerador na maior parte dos dias de sol e o gerador cobre sequências de tempo fechado. Ficam três condições: (1) confirmar por escrito a Isc de 18,51 A na entrada de 15 A; (2) respeitar o teto de ≈ 2,4 kW CA da bateria única, ou adicionar uma segunda unidade em paralelo se a operação exigir mais; (3) instalar as proteções DC/AC, o corte por subtensão e o aterramento conforme a NBR 5410/NBR 16690, com profissional habilitado. A geladeira 24 V direta é possível e mais eficiente, desde que ligada ao barramento com fusível dedicado. O “bifacial” não prejudica o desempenho nominal no teto, mas o ganho de catálogo não deve ser esperado.</p>
+    </div>
+  </section>
+
+  <section id="alerta">
+    <h2>Alertas e verificações</h2>
+    <div class="alert ok" role="status" id="compatInfo"></div>
     <div class="alert warn" id="mpptWarnings"></div>
+    <div class="alert warn" id="limitWarn"></div>
   </section>
 
   <section id="resumo">
@@ -45,7 +78,7 @@
     <div class="grid g4" id="kpis"></div>
     <h3>Lista de equipamentos</h3>
     <div class="card scroll"><table id="bomTable"></table></div>
-    <p class="note" style="color:var(--muted);font-size:13px">Preços marcados como <span class="tag est">estimativa</span> não constam nos anexos e devem ser atualizados nos campos da calculadora. Preços das baterias Belenus vêm da captura de tela.</p>
+    <p class="note" style="color:var(--muted);font-size:13px">Preços marcados como <span class="tag est">estimativa</span> não constam nos anexos e devem ser atualizados nos campos da calculadora. O preço da bateria vem da página da Inohouse (à vista R$ 8.499,99; Pix R$ 8.074,99; sem desconto R$ 8.699,99).</p>
   </section>
 
   <section id="calc">
@@ -66,16 +99,67 @@
   </section>
 
   <section id="baterias">
-    <h2>Baterias: anexos × banco 24 V</h2>
+    <h2>A bateria: Inohouse LiFePO4 24 V 314 Ah</h2>
     <div class="card scroll"><table id="batTable"></table></div>
     <div class="grid g2" style="margin-top:12px">
       <div class="card">
-        <h3 style="margin-top:0">Se optar por 48 V (alternativa)</h3>
-        <p>A Secpower 5,12 kWh tem o menor R$/kWh dos anexos, mas exige <strong>trocar o inversor por um de 48 V</strong> (não está nos anexos). Ganho: menor corrente (≈ 90 A em vez de 175 A a 4,2 kW), cabos mais finos e banco mais barato por kWh. Perda: o inversor do PDF sai do projeto, e o rack IP20 exige gabinete protegido para vibração e poeira.</p>
+        <h3 style="margin-top:0">Compatibilidade com o inversor</h3>
+        <p>25,6 V nominal (8S) e tensão de carga de até 29,2 V: dentro da faixa do inversor (proteção de sobretensão em 32 V). Use <code>05 = LIb</code> (lítio sem comunicação): o Bluetooth do BMS JK serve ao aplicativo do celular, não conversa com o inversor.</p>
       </div>
       <div class="card">
-        <h3 style="margin-top:0">Por que 24 V aqui</h3>
-        <p>Reaproveita o inversor já escolhido e a faixa de tensão MPPT (60–500 V). O banco 24 V 100 Ah × 2 entrega 5,12 kWh, o mesmo que uma bateria de 51,2 V dos anexos, e trabalha na faixa 20–29,2 V exigida pelo inversor.</p>
+        <h3 style="margin-top:0">Ponto de atenção: 100 A de descarga</h3>
+        <p>O inversor puxa ≈ 175 A a 4,2 kW. Uma única bateria de 100 A sustenta ≈ 2,4 kW CA contínuos. Uma partida forte (surge do inversor 2× por 5 s) acima disso pode desarmar o BMS e desligar tudo de uma vez. Para cargas maiores, instale <strong>duas baterias em paralelo</strong> (confirme com o fabricante se o paralelo é permitido; a página não informa).</p>
+      </div>
+    </div>
+    <div class="grid g4" id="bankKpis" style="margin-top:12px"></div>
+  </section>
+
+  <section id="carga">
+    <h2>Comportamento com apenas os 2 módulos e tempo de carga</h2>
+    <p>Arranjo 2S1P: como o MPPT do inversor limita a corrente a 15 A, cada módulo rende no máximo ≈ 625 W utilizáveis (Vmp × 15 A). Com os 2 módulos, o pico entregue à bateria é ≈ 1,1–1,2 kW, ou seja, ≈ 41 A a 27 V: apenas ≈ 0,13 C, muito suave para o LiFePO4 e bem abaixo dos 100 A do BMS.</p>
+    <div class="grid g4" id="chargeKpis"></div>
+    <h3>Estado de carga dia a dia (a partir de 10%)</h3>
+    <div class="card scroll"><table id="socTable"></table></div>
+    <p style="color:var(--muted);font-size:13px">Cenários: “dia de sol” = HSP informado todos os dias; “misto” = 1 dia de sol, 2 dias fechados (30% da geração). Consumo sai da bateria com eficiência de 94% do inversor e a carga entra com 97%. Ajuste HSP, cargas e desempenho na calculadora.</p>
+    <h3>Carga pelo gerador (10% → 100%)</h3>
+    <div class="card scroll"><table id="genChargeTable"></table></div>
+    <p style="color:var(--muted);font-size:13px">Tempo = ampères-hora a repor ÷ corrente, com 5% extra na cauda de absorção. A corrente é definida pelos programas <code>11</code> (rede/gerador) e <code>02</code> (total); o BMS aceita até 100 A. Correntes maiores exigem gerador maior.</p>
+  </section>
+
+  <section id="bifacial">
+    <h2>Rendimento real com módulos bifaciais no teto</h2>
+    <p>A potência de placa (730 W) é medida no lado frontal em STC; o lado traseiro é um bônus. No teto do veículo o verso fica a poucos centímetros de uma superfície opaca e quente, e recebe quase nenhuma luz. Logo, <strong>o rendimento não cai abaixo do nominal por isso</strong>: apenas não aparece o ganho bifacial de catálogo (em solo, 5–15%). O rendimento real é determinado pelas demais perdas abaixo.</p>
+    <div class="grid g2">
+      <div class="card scroll"><h3 style="margin-top:0">Cascata de perdas (energia diária)</h3><table id="yieldTable"></table></div>
+      <div class="card scroll"><h3 style="margin-top:0">Ganho bifacial por tipo de instalação</h3><table id="bifTable"></table></div>
+    </div>
+    <div class="alert warn" style="margin-top:12px"><strong>Confirmar na ficha:</strong> alguns fabricantes divulgam a potência “bifacial” (BNPI, com irradiância traseira) em vez da frontal. Se os 730 W incluírem ganho traseiro, a potência frontal real é menor e todos os números acima devem ser reduzidos na mesma proporção. Coeficiente de temperatura (−0,30 %/°C), perdas por sujeira, sombra e eficiência do MPPT são premissas editáveis em <code>calc.js</code>.</div>
+  </section>
+
+  <section id="geladeira">
+    <h2>Geladeira 24 V ligada direto ao lado DC do inversor?</h2>
+    <div class="alert warn"><strong>Resposta curta:</strong> o inversor <em>não tem saída DC</em>: os bornes DC dele são a entrada da bateria. Ligar “no DC do inversor” significa, na prática, ligar em paralelo com a bateria. Isso é possível e até mais eficiente (evita a conversão DC→AC→DC), <strong>desde que</strong> a derivação seja feita no barramento da bateria, com fusível próprio e a geladeira aceite toda a faixa de tensão do banco.</div>
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="margin-top:0">Verificação (editável)</h3>
+        <div class="form">
+          <div><label for="fr_w">Potência média (W)</label><input id="fr_w" type="number" min="10" step="5" value="50"></div>
+          <div><label for="fr_vmin">Tensão mínima aceita (V)</label><input id="fr_vmin" type="number" min="5" step="0.1" value="9.6"></div>
+          <div><label for="fr_vmax">Tensão máxima aceita (V)</label><input id="fr_vmax" type="number" min="12" step="0.1" value="31.5"></div>
+        </div>
+        <div id="fridgeOut" style="margin-top:10px"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Riscos dessa ligação</h3>
+        <ul>
+          <li><strong>Sobretensão:</strong> a bateria chega a 28,4–29,2 V na carga; geladeiras de 24 V com máximo de 28 V queimam. Compressores 12/24 V usuais aceitam até ≈ 31,5 V.</li>
+          <li><strong>Sem proteção contra subtensão coordenada:</strong> o inversor desliga em 22 V (prog. 29), mas a geladeira continua até o BMS cortar a bateria em ≈ 20 V, derrubando o inversor de forma abrupta. Use corte por subtensão (LVD) em ≈ 22–23 V ou a proteção interna da geladeira.</li>
+          <li><strong>Curto-circuito:</strong> a bateria tem corrente de curto muito alta. Sem fusível próximo ao barramento, um cabo fino de 2,5 mm² pode aquecer e pegar fogo antes de o BMS atuar.</li>
+          <li><strong>Ruído e transientes:</strong> o inversor gera ondulação e picos no barramento com cargas grandes; pouco problema para geladeiras com eletrônica robusta, mas verifique.</li>
+          <li><strong>Consumo com o inversor desligado:</strong> a geladeira continua descarregando a bateria; sem LVD, pode levá-la à proteção do BMS.</li>
+          <li><strong>Ligar/desligar a quente:</strong> conectar cargas ao barramento com o inversor ligado faz faísca (capacitores de entrada). Faça com o disjuntor DC aberto ou por chave/fusível.</li>
+          <li><strong>Sistemas 12 V do veículo:</strong> não misture; mantenha o 24 V isolado do chassi elétrico 12 V, com negativo único no ponto de aterramento.</li>
+        </ul>
       </div>
     </div>
   </section>
@@ -85,7 +169,7 @@
     <div class="diagram">
 <svg viewBox="0 0 1180 700" role="img" aria-labelledby="dt dd">
   <title id="dt">Esquema elétrico do sistema solar do motorhome</title>
-  <desc id="dd">Dois módulos fotovoltaicos em série ligam ao inversor via disjuntor DC e DPS. Banco de baterias 24 V em paralelo liga ao inversor via fusível classe T e disjuntor DC. Rede ou gerador entram por chave reversora bipolar intertravada e disjuntor 32 A na entrada AC do inversor. A saída AC segue para o quadro de distribuição com IDR.</desc>
+  <desc id="dd">Dois módulos fotovoltaicos em série ligam ao inversor via disjuntor DC e DPS. Uma bateria LiFePO4 24 V 314 Ah liga ao inversor via fusível classe T e disjuntor DC. Rede ou gerador entram por chave reversora bipolar intertravada e disjuntor 32 A na entrada AC do inversor. Uma geladeira 24 V pode ser derivada do barramento da bateria com fusível próprio. A saída AC segue para o quadro de distribuição com IDR.</desc>
 
   <!-- Gerador / Rede -->
   <rect class="box" x="30" y="60" width="160" height="70" rx="6"/>
@@ -161,12 +245,18 @@
 
   <!-- Baterias -->
   <rect class="bus" x="20" y="500" width="310" height="8"/><rect class="busn" x="20" y="640" width="310" height="8"/>
-  <rect class="bat" x="30" y="530" width="130" height="80" rx="6"/>
-  <text class="sm b" x="95" y="556" text-anchor="middle">LiFePO4 24 V</text><text class="sm" x="95" y="572" text-anchor="middle">25,6 V · 100 Ah</text><text class="sm" x="95" y="588" text-anchor="middle">2,56 kWh · BMS</text>
-  <rect class="bat" x="180" y="530" width="130" height="80" rx="6"/>
-  <text class="sm b" x="245" y="556" text-anchor="middle">LiFePO4 24 V</text><text class="sm" x="245" y="572" text-anchor="middle">25,6 V · 100 Ah</text><text class="sm" x="245" y="588" text-anchor="middle">2,56 kWh · BMS</text>
-  <path class="dcp" d="M95 530 V508 M245 530 V508"/><path class="dcn" d="M95 610 V640 M245 610 V640"/>
-  <text class="note" x="30" y="490">Banco paralelo 5,12 kWh (mesmo modelo/lote)</text>
+  <rect class="bat" x="30" y="530" width="150" height="80" rx="6"/>
+  <text class="sm b" x="105" y="552" text-anchor="middle">INOHOUSE 24 V</text><text class="sm" x="105" y="568" text-anchor="middle">25,6 V · 314 Ah</text><text class="sm" x="105" y="584" text-anchor="middle">8,03 kWh · BMS JK</text><text class="sm" x="105" y="600" text-anchor="middle">100 A carga/descarga</text>
+  <path class="dcp" d="M105 530 V508"/><path class="dcn" d="M105 610 V640"/>
+  <text class="note" x="30" y="490">1 bateria (100 A ⇒ ≈ 2,4 kW CA contínuos)</text>
+  <!-- Derivação opcional: geladeira 24 V no barramento da bateria -->
+  <path class="dcp" d="M255 508 V520"/>
+  <rect class="prot" x="205" y="520" width="100" height="26" rx="4"/><text class="sm b" x="255" y="538" text-anchor="middle">Fusível 10 A</text>
+  <path class="dcp" d="M255 546 V556"/>
+  <rect class="box" x="195" y="556" width="120" height="54" rx="6"/>
+  <text class="sm b" x="255" y="578" text-anchor="middle">GELADEIRA 24 V</text><text class="sm" x="255" y="594" text-anchor="middle">no barramento, não</text><text class="sm" x="255" y="606" text-anchor="middle">no “DC do inversor”</text>
+  <path class="dcn" d="M255 610 V640"/>
+  <text class="note" x="195" y="672">derivação com fusível próprio e corte por subtensão</text>
 
   <path class="dcp" d="M330 504 H360"/>
   <rect class="prot" x="360" y="488" width="70" height="32" rx="4"/><text class="sm b" x="395" y="508" text-anchor="middle">T 200 A</text>
@@ -237,6 +327,13 @@
     <div class="card"><ul id="tips"></ul></div>
   </section>
 
+  <section id="especialista">
+    <h2>Pontos adicionais (visão de especialista)</h2>
+    <p style="color:var(--muted);font-size:13px">Pontos que ficaram descobertos nas etapas anteriores, à luz da legislação e normas elétricas brasileiras.</p>
+    <div class="grid g2" id="expertGrid"></div>
+    <div class="alert warn" style="margin-top:12px"><strong>Limite desta consulta:</strong> a instrução de especialista pede base em dados de mercado da Greener e em propostas enviadas a leads da Soluções Solares. Esses dados <em>não estavam disponíveis</em> nesta sessão; os preços do inversor, do módulo e dos acessórios são estimativas e devem ser substituídos pelos valores das propostas/cotações reais.</div>
+  </section>
+
   <section id="checklist">
     <h2>Checklist de instalação</h2>
     <div class="card">
@@ -247,20 +344,38 @@
   </section>
 
   <section id="fontes">
-    <h2>Fontes e premissas</h2>
+    <h2>Fontes consultadas</h2>
     <div class="card">
-      <ul>
-        <li>Manual do usuário Hybrid Solar Inverter/Charger 4.2 kVA 230 Vac (arquivo <em>InversorHibrido.pdf</em>, ref. 371-00108-00): tabelas 1–4, p. 3–7, 9–14, 18–22, 28.</li>
-        <li>Baterias: captura de tela de <a href="https://belenus.com.br/produtos/detalhes/4/energia%20solar/2631/armazenamento/baterias/bateria%20baixa%20tens%C3%A3o">belenus.com.br — Bateria baixa tensão</a>.</li>
-        <li>Módulos: <a href="https://www.neosolar.com.br/loja/kit-painel-solar-fotovoltaico-730w-znshine-zxn8-bd132.html">NeoSolar — Kit com 2 painéis ZNShine ZXN8-BD132 730 W</a>; especificações elétricas conforme ficha do produto (Voc 49,5 V, Vmp 41,7 V, Isc 18,51 A, Imp 17,51 A, 2384 × 1303 × 33 mm, 40,5 kg).</li>
-        <li><strong>Premissas:</strong> coeficientes de temperatura típicos TOPCon (Voc −0,25 %/°C, Vmp −0,29 %/°C) por não constarem na ficha consultada; HSP de partida 5,0 kWh/m²/dia e desempenho global 0,75 (confirme o HSP local no CRESESB/SunData); preços do inversor, módulos, banco 24 V e acessórios são estimativas editáveis.</li>
-      </ul>
+      <ol>
+        <li>Manual do usuário Hybrid Solar Inverter/Charger 4.2 kVA 230 Vac (arquivo <em>InversorHibrido.pdf</em>, ref. 371-00108-00), tabelas 1–4 e p. 3–7, 9–14, 18–22, 28.</li>
+        <li><a href="https://lojainohouse.com.br/produto/bateria-solar-tecnologia-lifepo4-24v-314ah-803kwh-bms-jk-bluetooth-inohouse/">Inohouse — Bateria Solar LiFePO4 24 V 314 Ah 8,03 kWh, BMS JK Bluetooth</a> (consulta em 21/09/2026): tensão, capacidade, limites de 100 A, IP65, 52 kg, ciclos, garantia, Inmetro e preços.</li>
+        <li><a href="https://www.neosolar.com.br/loja/kit-painel-solar-fotovoltaico-730w-znshine-zxn8-bd132.html">NeoSolar — Kit com 2 painéis ZNShine ZXN8-BD132 730 W</a>. A página bloqueou o acesso automatizado (HTTP 403); as especificações elétricas vieram de outra página que reproduz a ficha (Voc 49,5 V, Vmp 41,7 V, Isc 18,51 A, Imp 17,51 A, 2384 × 1303 × 33 mm, 40,5 kg). O preço é estimativa.</li>
+        <li>Captura de tela da <a href="https://belenus.com.br/produtos/detalhes/4/energia%20solar/2631/armazenamento/baterias/bateria%20baixa%20tens%C3%A3o">Belenus — Bateria baixa tensão</a> (baterias 48/51,2 V, descartadas por incompatibilidade e por decisão do cliente).</li>
+        <li>ABNT NBR 5410:2004 — Instalações elétricas de baixa tensão.</li>
+        <li>ABNT NBR 16690:2019 — Instalações elétricas de arranjos fotovoltaicos: requisitos de projeto.</li>
+        <li>ABNT NBR 16612:2020 — Cabos de potência para sistemas fotovoltaicos.</li>
+        <li>Norma Regulamentadora NR-10 (MTE) — Segurança em instalações e serviços em eletricidade.</li>
+        <li>Lei nº 14.300/2022 (marco legal da geração distribuída): citada apenas para registrar que <em>não se aplica</em> a sistema off-grid.</li>
+        <li>Resolução CONTRAN nº 292/2008 — modificações de veículos (consulta obrigatória ao DETRAN/Inmetro antes de instalar módulos no teto).</li>
+        <li>IEC TS 60904-1-2 — medição de módulos bifaciais (potência frontal/traseira).</li>
+        <li>CRESESB/CEPEL — SunData (irradiação solar diária média): fonte para confirmar o HSP local; o valor de 5,0 é apenas ponto de partida.</li>
+        <li>Skill de especialista em energia solar fotovoltaica (instrução da Soluções Solares Ltda): base em legislação/normas brasileiras, dados de mercado da Greener e propostas a leads. Dados da Greener e das propostas não estavam acessíveis nesta sessão.</li>
+      </ol>
+      <p><strong>Premissas assumidas (sem fonte):</strong> coeficientes de temperatura típicos TOPCon (Voc −0,25 %/°C; Vmp −0,29 %/°C; Pmax −0,30 %/°C); tensão de carga máxima (29,2 V) e de corte do BMS (20 V) típicas de 8S LiFePO4; eficiência do MPPT 95%; sujeira 3%; cabos e descasamento 2,5%; sombra e uso 10%; HSP 5,0 kWh/m²/dia; cargas de exemplo; preços do inversor, do módulo e dos acessórios.</p>
+    </div>
+  </section>
+
+  <section id="aviso">
+    <h2>Aviso de uso de IA e responsabilidade</h2>
+    <div class="alert warn">
+      <p style="margin-top:0">Este trabalho foi realizado com o uso de inteligência artificial: <strong>Claude</strong>, da Anthropic (modelo configurado: <code>claude-sonnet-5</code>; o modelo efetivo de cada resposta pode variar), sob a supervisão de profissionais da <strong>Soluções Solares Ltda</strong>, para fins de <strong>consultoria teórica</strong>.</p>
+      <p style="margin-bottom:0">O conteúdo não substitui projeto executivo, ART/RRT nem inspeção de profissional habilitado. <strong>A Soluções Solares Ltda não se responsabiliza por instalações, adaptações ou usos executados por terceiros</strong> com base neste material.</p>
     </div>
   </section>
 </main>
 
 <footer>
-  <div class="wrap">Projeto versionado em Git · testes com <code>npm test</code> · licença MIT. Ferramenta de apoio: não substitui projeto e ART de profissional habilitado.</div>
+  <div class="wrap">Projeto versionado em Git · testes com <code>npm test</code> · licença MIT. Elaborado com IA (Claude, Anthropic) sob supervisão da Soluções Solares Ltda, para consultoria teórica; sem responsabilidade por execução de terceiros.</div>
 </footer>
 
 <script src="src/equipment.js"></script>

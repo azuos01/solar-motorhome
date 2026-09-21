@@ -75,52 +75,32 @@
     priceSource: 'estimativa - conferir no link da NeoSolar'
   };
 
-  /* Fonte: captura de tela belenus.com.br (baterias baixa tensão) */
-  const batteries = [
-    {
-      id: 'unipower-uplfp48-100',
-      code: 'BATBE-48V-5KWH',
-      name: 'Bateria de Lítio Uplfp48-100 4,8 kWh 48 V (Unipower)',
-      nominalV: 48,
-      kWh: 4.8,
-      ip: 'IP21',
-      priceBRL: 5425.81,
-      priceSource: 'belenus.com.br (captura de tela)'
-    },
-    {
-      id: 'deye-se-f5',
-      code: 'BATDE-51V-5.1KWH-BT',
-      name: 'Bateria de Lítio Se-F5 5,12 kWh 51,2 V (Deye)',
-      nominalV: 51.2,
-      kWh: 5.12,
-      ip: 'IP21',
-      priceBRL: 5754.67,
-      priceSource: 'belenus.com.br (captura de tela)'
-    },
-    {
-      id: 'secpower-splfp5e',
-      code: 'BATSP-51V-5.12KWH-BT',
-      name: 'Bateria de Lítio Splfp 5 E 5,12 kWh 51,2 V (Secpower)',
-      nominalV: 51.2,
-      kWh: 5.12,
-      ip: 'IP20',
-      priceBRL: 5425.81,
-      priceSource: 'belenus.com.br (captura de tela)'
-    }
-  ];
-
-  /* Banco de referência compatível com o inversor 24 V (NÃO consta nos anexos) */
-  const battery24 = {
-    id: 'ref-lifepo4-24v-100',
-    name: 'Bateria LiFePO4 25,6 V 100 Ah (8S) com BMS - referência',
+  /* Fonte: página do produto na Inohouse (lojainohouse.com.br), consultada em 21/09/2026.
+     Campos marcados em "assumed" NÃO constam na página e são valores típicos de 8S LiFePO4. */
+  const battery = {
+    id: 'inohouse-thu24v314',
+    name: 'Bateria solar LiFePO4 24 V 314 Ah 8,03 kWh, BMS JK Bluetooth (Inohouse)',
+    chemistry: 'LiFePO4 8S',
     nominalV: 25.6,
-    kWh: 2.56,
-    ip: 'IP65 (típico)',
-    maxChargeV: 29.2, // 8 x 3,65 V
-    bmsCutoffV: 20.0, // 8 x 2,5 V (típico)
-    bmsMaxContA: 100,
-    priceBRL: 3200, // ESTIMATIVA - editar
-    priceSource: 'estimativa (não consta nos anexos)'
+    capacityAh: 314,
+    kWh: 8.03,
+    maxChargeA: 100,
+    maxDischargeA: 100,
+    maxChargeV: 29.2, // 8 x 3,65 V (assumido)
+    bmsCutoffV: 20.0, // 8 x 2,5 V (assumido)
+    ip: 'IP65',
+    weightKg: 52,
+    dimensionsMm: { l: 640, w: 245, h: 220 },
+    cycles: 5000,
+    warrantyYears: 3,
+    inmetro: '008996/2026',
+    bms: 'JK com balanceador ativo e Bluetooth',
+    assumed: ['maxChargeV', 'bmsCutoffV', 'faixa de temperatura de carga (não informada)'],
+    priceRegularBRL: 8699.99,
+    priceCashBRL: 8499.99,
+    pricePixBRL: 8074.99,
+    priceBRL: 8499.99, // valor à vista usado no projeto
+    priceSource: 'lojainohouse.com.br (consulta em 21/09/2026)'
   };
 
   /* Cargas típicas de motorhome (AC 230 V). Editável na página. */
@@ -147,5 +127,5 @@
     { id: 'shunt', name: 'Monitor de bateria com shunt (opcional)', qty: 1, priceBRL: 450 }
   ];
 
-  return { inverter, panel, batteries, battery24, defaultLoads, accessories };
+  return { inverter, panel, battery, defaultLoads, accessories };
 });

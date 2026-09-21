@@ -1,6 +1,6 @@
 {
   "name": "solar-motorhome",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Projeto e calculadora de sistema fotovoltaico off-grid para motorhome (inversor 4,2 kVA 24 V, módulos 730 W, baterias LiFePO4, gerador auxiliar).",
   "license": "MIT",
   "private": true,

@@ -143,8 +143,8 @@
     const dod = opts.dod ?? 0.9;
     const eff = opts.invEff ?? D.inverter.peakEfficiency;
     const kWhNeeded = (dailyWh * days) / (dod * eff) / 1000;
-    const unitKWh = opts.unitKWh ?? D.battery24.kWh;
-    // mínimo de 2 unidades: 1 bateria de 100 A contínuos não sustenta os ≈175 A do inversor a plena carga
+    const unitKWh = opts.unitKWh ?? D.battery.kWh;
+    // minUnits: 1 bateria de 100 A limita o inversor a ≈2,4 kW; use 2 se as cargas passarem disso
     const units = Math.max(opts.minUnits ?? 1, Math.ceil(kWhNeeded / unitKWh - 1e-9));
     return { kWhNeeded, units, installedKWh: units * unitKWh };
   }
@@ -195,10 +195,10 @@
   }
 
   function costBreakdown(cfg) {
-    const { inverter, panel, battery24, accessories } = D;
+    const { inverter, panel, battery, accessories } = D;
     const panels = cfg.nPanels * (cfg.panelUnitBRL ?? panelUnitPrice(panel));
     const inv = cfg.inverterBRL ?? inverter.priceBRL;
-    const bat = cfg.nBatteries * (cfg.batteryUnitBRL ?? battery24.priceBRL);
+    const bat = cfg.nBatteries * (cfg.batteryUnitBRL ?? battery.priceBRL);
     const acc = accessories.reduce((s, a) => s + a.qty * a.priceBRL, 0) - (cfg.withShunt === false ? 450 : 0);
     const total = panels + inv + bat + acc;
     return { panels, inverter: inv, batteries: bat, accessories: acc, total };
@@ -238,6 +238,136 @@
     return meets || ok[ok.length - 1];
   }
 
+  /* ---------- v2: comportamento com 2 módulos, tempo de carga, rendimento real, geladeira 24 V ---------- */
+
+  /** Potência CA contínua máxima que n baterias sustentam (limite de descarga do BMS). */
+  function maxAcFromBattery(bat, n = 1, inv = D.inverter) {
+    const iA = n * bat.maxDischargeA;
+    const eff = inv.peakEfficiency;
+    const atNominal = iA * bat.nominalV * eff;
+    const atLow = iA * 24 * eff; // bateria já descarregada (~24 V)
+    return { dcA: iA, acWNominal: Math.min(atNominal, inv.ratedW), acWLow: Math.min(atLow, inv.ratedW), limitsInverter: atNominal < inv.ratedW };
+  }
+
+  /** Corrente de carga na bateria (A) para uma potência PV, com eficiência do MPPT. */
+  function pvChargeCurrentA(pvW, vBat = 27, mpptEff = 0.95) {
+    return (pvW * mpptEff) / vBat;
+  }
+
+  /**
+   * Cascata de perdas do rendimento real. Todos os fatores são premissas editáveis.
+   * rearGainPct = ganho do lado traseiro (0 no teto do veículo). O kWp nominal (STC) já é o lado frontal.
+   */
+  function realYield(str, inv, hsp, opts = {}) {
+    const tCell = opts.tCellC ?? 52; // célula em teto sem ventilação traseira
+    const tcPmax = opts.tcPmax ?? -0.003; // ASSUMIDO (TOPCon típico)
+    const f = {
+      temperatura: 1 + tcPmax * (tCell - 25),
+      sujeira: opts.soiling ?? 0.97,
+      cabosDescasamento: opts.wiring ?? 0.975,
+      sombraEUso: opts.shadeUse ?? 0.9, // estacionamento, árvores, antenas, orientação aleatória
+      baixaIrradiancia: opts.lowIrr ?? 0.98,
+      mppt: opts.mpptEff ?? 0.95 // ASSUMIDO (não consta no manual)
+    };
+    const nameplateWh = str.pStcW * hsp;
+    const clip = dailyPvEnergyWh(str, inv, hsp, 1, {});
+    f.clipping15A = 1 - clip.clippingLossPct / 100;
+    let wh = nameplateWh;
+    const steps = [{ name: 'Nominal (kWp × HSP)', factor: 1, wh }];
+    for (const [k, v] of Object.entries(f)) {
+      wh *= v;
+      steps.push({ name: k, factor: v, wh });
+    }
+    const rear = opts.rearGainPct ?? 0;
+    wh *= 1 + rear / 100;
+    steps.push({ name: 'ganho traseiro', factor: 1 + rear / 100, wh });
+    return {
+      steps,
+      wh,
+      pr: wh / nameplateWh,
+      kWhPerKwpDay: wh / (str.pStcW / 1000) / 1000,
+      rearGainPct: rear
+    };
+  }
+
+  /** Cenários de ganho bifacial: (bifacialidade × irradiância traseira relativa). */
+  function bifacialScenarios(hsp, str, inv, bifaciality = 0.8) {
+    const cases = [
+      { id: 'roof', name: 'Teto do veículo (sem afastamento, tampado)', rearRatio: 0.0 },
+      { id: 'roofGap', name: 'Teto com pequeno vão (~10 cm) sobre superfície clara', rearRatio: 0.03 },
+      { id: 'ground', name: 'Solo, inclinado, albedo médio (catálogo)', rearRatio: 0.12 }
+    ];
+    return cases.map((c) => {
+      const gain = bifaciality * c.rearRatio * 100;
+      const r = realYield(str, inv, hsp, { rearGainPct: gain });
+      return { ...c, gainPct: gain, wh: r.wh, pr: r.pr };
+    });
+  }
+
+  /**
+   * Simulação diária do estado de carga. weather = lista cíclica de fatores sobre a geração média (ex.: [1,1,0.4]).
+   * Consumo sai da bateria com eficiência do inversor; carga entra com eficiência da bateria.
+   */
+  function chargeSimulation(bat, opts = {}) {
+    const capWh = (opts.nBatteries ?? 1) * bat.kWh * 1000;
+    const soc0 = opts.soc0 ?? 0.1;
+    const target = opts.target ?? 1;
+    const pv = opts.pvDailyWh ?? 0;
+    const load = (opts.loadDailyWh ?? 0) / (opts.invEff ?? D.inverter.peakEfficiency);
+    const chEff = opts.chargeEff ?? 0.97;
+    const weather = opts.weather ?? [1];
+    const maxDays = opts.maxDays ?? 30;
+    let soc = soc0;
+    const series = [];
+    let daysToTarget = null;
+    for (let d = 1; d <= maxDays; d++) {
+      const gen = pv * weather[(d - 1) % weather.length] * chEff;
+      soc = Math.min(1, Math.max(0, soc + (gen - load) / capWh));
+      series.push({ day: d, soc });
+      if (daysToTarget === null && soc >= target - 1e-9) daysToTarget = d;
+    }
+    const netWh = pv * chEff - load;
+    // dia fracionado (interpolação linear) até a meta
+    const fractional = netWh > 0 && weather.length === 1 ? ((target - soc0) * capWh) / netWh : null;
+    return { capWh, series, daysToTarget, fractionalDays: fractional, netWhPerDay: netWh, selfSustaining: netWh >= 0 };
+  }
+
+  /** Tempo (h) para carregar de soc0 a soc1 com corrente constante (gerador/rede), com 5% de cauda CV. */
+  function chargeHoursAtCurrent(bat, chargeA, soc0 = 0.1, soc1 = 1, nBatteries = 1) {
+    const cA = Math.min(chargeA, nBatteries * bat.maxChargeA);
+    const ah = (soc1 - soc0) * bat.capacityAh * nBatteries;
+    return { hours: (ah / cA) * 1.05, currentA: cA, limitedByBms: chargeA > nBatteries * bat.maxChargeA };
+  }
+
+  /**
+   * Geladeira 24 V ligada direto ao barramento DC (o inversor NÃO tem saída DC própria: os bornes DC são a entrada da bateria).
+   * fridge: { vMin, vMax, watts }.
+   */
+  function dcFridgeCheck(fridge, bat, inv) {
+    const issues = [];
+    const vBulk = 28.4; // prog. 26 recomendado
+    const vTop = bat.maxChargeV;
+    const vLow = bat.bmsCutoffV;
+    if (fridge.vMax < vBulk)
+      issues.push({ sev: 'high', text: `Tensão máx. da geladeira (${fridge.vMax} V) abaixo da carga em bulk (${vBulk} V): danifica o compressor/eletrônica.` });
+    else if (fridge.vMax < vTop)
+      issues.push({ sev: 'mid', text: `Tensão máx. da geladeira (${fridge.vMax} V) abaixo da tensão de topo possível (${vTop} V).` });
+    if (fridge.vMin > inv.lowDcCutoffV[2] + 3)
+      issues.push({ sev: 'mid', text: `Tensão mín. da geladeira (${fridge.vMin} V) acima da faixa útil da bateria descarregada.` });
+    const avgA = fridge.watts / 25.6;
+    const startA = avgA * 3;
+    const fuseA = [3, 5, 7.5, 10, 15, 20, 25, 30].find((x) => x >= startA * 1.25) ?? 30;
+    return {
+      compatible: !issues.some((i) => i.sev === 'high'),
+      issues,
+      avgA,
+      fuseA,
+      cableMm2: fuseA <= 10 ? 2.5 : 4,
+      lowVoltageDisconnectNeeded: true,
+      dailyWh: fridge.watts * (fridge.hoursPerDay ?? 8)
+    };
+  }
+
   return {
     round,
     stringElectrical,
@@ -253,6 +383,13 @@
     panelUnitPrice,
     costBreakdown,
     panelSweep,
-    bestPanelCount
+    bestPanelCount,
+    maxAcFromBattery,
+    pvChargeCurrentA,
+    realYield,
+    bifacialScenarios,
+    chargeSimulation,
+    chargeHoursAtCurrent,
+    dcFridgeCheck
   };
 });
