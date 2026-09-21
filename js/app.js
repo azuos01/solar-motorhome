@@ -70,7 +70,7 @@
     const str = C.stringElectrical(panel, state.nPanels, { tMinC: state.tMin });
     const chk = C.checkMppt(str, D.inverter);
     const pv = C.dailyPvEnergyWh(str, D.inverter, state.hsp, state.pr);
-    const bank = C.batterySizing(ls.dailyWh, { autonomyDays: state.autonomy, dod: state.dod });
+    const bank = C.batterySizing(ls.dailyWh, { autonomyDays: state.autonomy, dod: state.dod, minUnits: 2 });
     const cost = C.costBreakdown({
       nPanels: state.nPanels, nBatteries: bank.units, panelUnitBRL: state.panelKitBRL / D.panel.kitQty,
       inverterBRL: state.inverterBRL, batteryUnitBRL: state.batteryUnitBRL

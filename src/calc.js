@@ -144,7 +144,8 @@
     const eff = opts.invEff ?? D.inverter.peakEfficiency;
     const kWhNeeded = (dailyWh * days) / (dod * eff) / 1000;
     const unitKWh = opts.unitKWh ?? D.battery24.kWh;
-    const units = Math.max(1, Math.ceil(kWhNeeded / unitKWh - 1e-9));
+    // mínimo de 2 unidades: 1 bateria de 100 A contínuos não sustenta os ≈175 A do inversor a plena carga
+    const units = Math.max(opts.minUnits ?? 1, Math.ceil(kWhNeeded / unitKWh - 1e-9));
     return { kWhNeeded, units, installedKWh: units * unitKWh };
   }
 

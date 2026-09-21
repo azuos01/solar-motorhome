@@ -148,3 +148,9 @@ test('melhor nº de módulos: o menor que atende a meta, senão o maior que cabe
   assert.equal(C.bestPanelCount(rows, 999999).n, 2); // só 2 cabem
   assert.equal(C.bestPanelCount(C.panelSweep(5, { roofAreaM2: 1 }), 100), null);
 });
+
+test('banco: minUnits força 2 baterias para sustentar a corrente do inversor', () => {
+  assert.equal(C.batterySizing(1000, { minUnits: 2 }).units, 2);
+  assert.equal(C.batterySizing(1000).units, 1);
+  assert.equal(C.batterySizing(6000, { minUnits: 2 }).units, 3);
+});
