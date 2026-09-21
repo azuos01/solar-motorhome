@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solar Motorhome – Projeto 24 V com gerador auxiliar</title>
+  <meta name="description" content="Projeto e calculadora de sistema fotovoltaico off-grid para motorhome: inversor híbrido 4,2 kVA 24 V, 2 módulos ZNShine 730 W, banco LiFePO4 24 V e gerador auxiliar.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <span class="brand">☀ Solar Motorhome</span>
+    <nav aria-label="Seções">
+      <a href="#alerta">Alerta</a><a href="#resumo">Resumo</a><a href="#calc">Calculadora</a>
+      <a href="#baterias">Baterias</a><a href="#esquema">Esquema</a><a href="#gerador">Gerador</a>
+      <a href="#config">Configuração</a><a href="#riscos">Riscos</a><a href="#checklist">Checklist</a>
+    </nav>
+    <button class="theme" id="themeBtn" type="button" aria-label="Alternar tema">Tema</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero">
+    <h1>Sistema solar para motorhome: melhor custo × benefício</h1>
+    <p>Inversor/carregador híbrido 4,2 kVA (barramento 24 V), 2 módulos bifaciais ZNShine 730 W, banco de lítio 24 V e interligação com gerador auxiliar. Todos os números abaixo são calculados no navegador a partir dos dados do manual, da NeoSolar e da Belenus.</p>
+    <div class="badges">
+      <span class="badge">v1.0.0</span><span class="badge">Off-grid</span><span class="badge">24 Vdc / 220 Vac / 60 Hz</span>
+      <span class="badge" id="badgeTests">testes automatizados no CI</span>
+    </div>
+  </div>
+
+  <section id="alerta">
+    <h2>Alerta crítico de compatibilidade</h2>
+    <div class="alert danger" role="alert">
+      <strong class="t">As três baterias da Belenus (48 V / 51,2 V) NÃO podem ser ligadas a este inversor.</strong>
+      <ul id="compatReasons"></ul>
+      <p style="margin:8px 0 0">Solução adotada no projeto: manter o inversor e os módulos e usar um <strong>banco LiFePO4 24 V (25,6 V) em paralelo</strong>. A alternativa (trocar o inversor por um de 48 V para usar a Secpower 5,12 kWh) está comparada na seção <a href="#baterias">Baterias</a>.</p>
+    </div>
+    <div class="alert warn" id="mpptWarnings"></div>
+  </section>
+
+  <section id="resumo">
+    <h2>Resumo do projeto recomendado</h2>
+    <div class="grid g4" id="kpis"></div>
+    <h3>Lista de equipamentos</h3>
+    <div class="card scroll"><table id="bomTable"></table></div>
+    <p class="note" style="color:var(--muted);font-size:13px">Preços marcados como <span class="tag est">estimativa</span> não constam nos anexos e devem ser atualizados nos campos da calculadora. Preços das baterias Belenus vêm da captura de tela.</p>
+  </section>
+
+  <section id="calc">
+    <h2>Calculadora</h2>
+    <div class="card">
+      <div class="form" id="params"></div>
+    </div>
+    <h3>Cargas (AC 220 V)</h3>
+    <div class="card scroll">
+      <table id="loadsTable"></table>
+      <p style="margin:10px 0 0"><button class="btn ghost" id="addLoad" type="button">+ Adicionar carga</button></p>
+    </div>
+    <h3>Balanço de energia</h3>
+    <div class="grid g4" id="balance"></div>
+    <h3>Custo-benefício por número de módulos em série</h3>
+    <div class="card scroll"><table id="sweepTable"></table></div>
+    <p style="color:var(--muted);font-size:13px">Como o MPPT limita a corrente a 15 A, cada módulo extra adiciona a mesma potência utilizável (≈ 625 W). Com o teto do motorhome limitando a área, o kit de 2 módulos é o ponto de melhor custo-benefício: é o mínimo válido (1 módulo fica abaixo de 60 V) e o que cabe.</p>
+  </section>
+
+  <section id="baterias">
+    <h2>Baterias: anexos × banco 24 V</h2>
+    <div class="card scroll"><table id="batTable"></table></div>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card">
+        <h3 style="margin-top:0">Se optar por 48 V (alternativa)</h3>
+        <p>A Secpower 5,12 kWh tem o menor R$/kWh dos anexos, mas exige <strong>trocar o inversor por um de 48 V</strong> (não está nos anexos). Ganho: menor corrente (≈ 90 A em vez de 175 A a 4,2 kW), cabos mais finos e banco mais barato por kWh. Perda: o inversor do PDF sai do projeto, e o rack IP20 exige gabinete protegido para vibração e poeira.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Por que 24 V aqui</h3>
+        <p>Reaproveita o inversor já escolhido e a faixa de tensão MPPT (60–500 V). O banco 24 V 100 Ah × 2 entrega 5,12 kWh, o mesmo que uma bateria de 51,2 V dos anexos, e trabalha na faixa 20–29,2 V exigida pelo inversor.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="esquema">
+    <h2>Esquema elétrico (unifilar) com gerador auxiliar</h2>
+    <div class="diagram">
+<svg viewBox="0 0 1180 700" role="img" aria-labelledby="dt dd">
+  <title id="dt">Esquema elétrico do sistema solar do motorhome</title>
+  <desc id="dd">Dois módulos fotovoltaicos em série ligam ao inversor via disjuntor DC e DPS. Banco de baterias 24 V em paralelo liga ao inversor via fusível classe T e disjuntor DC. Rede ou gerador entram por chave reversora bipolar intertravada e disjuntor 32 A na entrada AC do inversor. A saída AC segue para o quadro de distribuição com IDR.</desc>
+
+  <!-- Gerador / Rede -->
+  <rect class="box" x="30" y="60" width="160" height="70" rx="6"/>
+  <text class="md b" x="110" y="84" text-anchor="middle">GERADOR 220 V</text>
+  <text class="sm" x="110" y="100" text-anchor="middle">≥ 4 kVA (inverter/AVR)</text>
+  <text class="sm" x="110" y="115" text-anchor="middle">fora do veículo (CO!)</text>
+  <rect class="box" x="30" y="150" width="160" height="70" rx="6"/>
+  <text class="md b" x="110" y="174" text-anchor="middle">REDE / CAMPING 220 V</text>
+  <text class="sm" x="110" y="190" text-anchor="middle">Tomada CEE 32 A</text>
+  <text class="sm" x="110" y="205" text-anchor="middle">IDR 30 mA + disj. 32 A</text>
+
+  <!-- fios gerador -->
+  <path class="acl" d="M190 90 H280"/><path class="acn" d="M190 97 H280"/><path class="pe" d="M190 104 H280"/>
+  <!-- fios rede -->
+  <path class="acl" d="M190 175 H280"/><path class="acn" d="M190 182 H280"/><path class="pe" d="M190 189 H280"/>
+
+  <!-- chave reversora -->
+  <rect class="prot" x="280" y="70" width="140" height="150" rx="6"/>
+  <text class="md b" x="350" y="98" text-anchor="middle">CHAVE REVERSORA</text>
+  <text class="sm" x="350" y="114" text-anchor="middle">bipolar 0 – I – II · 40 A</text>
+  <text class="sm" x="350" y="130" text-anchor="middle">I = Gerador · II = Rede</text>
+  <text class="sm" x="350" y="146" text-anchor="middle">corta L e N (intertravada:</text>
+  <text class="sm" x="350" y="160" text-anchor="middle">nunca as duas fontes juntas)</text>
+
+  <!-- saída chave -> disjuntor entrada -->
+  <path class="acl" d="M420 115 H470"/><path class="acn" d="M420 122 H470"/><path class="pe" d="M420 129 H470"/>
+  <rect class="prot" x="470" y="100" width="120" height="50" rx="6"/>
+  <text class="md b" x="530" y="122" text-anchor="middle">Disj. 2P 32 A</text>
+  <text class="sm" x="530" y="138" text-anchor="middle">entrada AC do inversor</text>
+  <path class="acl" d="M524 150 V250"/><path class="acn" d="M531 150 V250"/><path class="pe" d="M538 150 V250"/>
+  <text class="note" x="546" y="200">cabo 6 mm² (10 AWG)</text>
+  <text class="note" x="546" y="214">torque 1,4–1,6 N·m</text>
+
+  <!-- Inversor -->
+  <rect class="inv" x="470" y="250" width="240" height="200" rx="10"/>
+  <text class="md b" x="590" y="318" text-anchor="middle">INVERSOR / CARREGADOR</text>
+  <text class="md b" x="590" y="336" text-anchor="middle">HÍBRIDO 4,2 kVA</text>
+  <text class="sm" x="590" y="356" text-anchor="middle">24 Vdc · 220 Vac · 60 Hz (prog. 08/09)</text>
+  <text class="sm" x="590" y="372" text-anchor="middle">MPPT 60–500 V · 15 A</text>
+  <text class="sm" x="590" y="388" text-anchor="middle">entrada AC: prog. 03 = GEN</text>
+  <text class="sm" x="510" y="266">AC IN</text>
+  <text class="sm" x="640" y="266">AC OUT</text>
+  <text class="sm" x="476" y="290">PV+</text><text class="sm" x="476" y="392">PV−</text>
+  <text class="sm" x="548" y="440">BAT+</text><text class="sm" x="606" y="440">BAT−</text>
+
+  <!-- Saída AC -> QDC -->
+  <path class="acl" d="M644 250 V115 H760"/><path class="acn" d="M651 250 V122 H760"/><path class="pe" d="M658 250 V129 H760"/>
+  <rect class="prot" x="760" y="90" width="170" height="80" rx="6"/>
+  <text class="md b" x="845" y="116" text-anchor="middle">QDC AC</text>
+  <text class="sm" x="845" y="134" text-anchor="middle">IDR 30 mA + disjuntores</text>
+  <text class="sm" x="845" y="149" text-anchor="middle">por circuito (10–16 A)</text>
+  <path class="acl" d="M930 130 H960 M960 100 V200 M960 100 H990 M960 150 H990 M960 200 H990"/>
+  <rect class="box" x="990" y="80" width="170" height="40" rx="6"/><text class="sm" x="1075" y="104" text-anchor="middle">Tomadas 220 V</text>
+  <rect class="box" x="990" y="130" width="170" height="40" rx="6"/><text class="sm" x="1075" y="154" text-anchor="middle">Geladeira / cargas fixas</text>
+  <rect class="box" x="990" y="180" width="170" height="40" rx="6"/><text class="sm" x="1075" y="204" text-anchor="middle">Ar-cond. (soft-start, opc.)</text>
+
+  <!-- PV -->
+  <rect class="pv" x="30" y="270" width="120" height="56" rx="4"/>
+  <text class="sm b" x="90" y="294" text-anchor="middle">Módulo 1 · 730 W</text><text class="sm" x="90" y="310" text-anchor="middle">Voc 49,5 · Isc 18,51</text>
+  <rect class="pv" x="30" y="346" width="120" height="56" rx="4"/>
+  <text class="sm b" x="90" y="370" text-anchor="middle">Módulo 2 · 730 W</text><text class="sm" x="90" y="386" text-anchor="middle">Voc 49,5 · Isc 18,51</text>
+  <path class="dcp" d="M90 326 V346"/>
+  <text class="note" x="98" y="340">série</text>
+  <path class="dcp" d="M150 298 H230"/><path class="dcn" d="M150 372 H230"/>
+  <rect class="prot" x="230" y="278" width="120" height="112" rx="6"/>
+  <text class="sm b" x="290" y="300" text-anchor="middle">Disj. DC 2P 16 A</text>
+  <text class="sm" x="290" y="315" text-anchor="middle">≥ 250 Vdc</text>
+  <text class="sm b" x="290" y="340" text-anchor="middle">DPS DC classe II</text>
+  <text class="sm" x="290" y="355" text-anchor="middle">≥ 150 Vdc + PE</text>
+  <path class="dcp" d="M350 298 H470"/><path class="dcn" d="M350 372 H470"/>
+  <text class="note" x="360" y="290">cabo solar 6 mm² · MC4</text>
+  <text class="note" x="40" y="425">2S1P: Voc 99 V (≈108 V a −5 °C) · Vmp 83,4 V</text>
+
+  <!-- Baterias -->
+  <rect class="bus" x="20" y="500" width="310" height="8"/><rect class="busn" x="20" y="640" width="310" height="8"/>
+  <rect class="bat" x="30" y="530" width="130" height="80" rx="6"/>
+  <text class="sm b" x="95" y="556" text-anchor="middle">LiFePO4 24 V</text><text class="sm" x="95" y="572" text-anchor="middle">25,6 V · 100 Ah</text><text class="sm" x="95" y="588" text-anchor="middle">2,56 kWh · BMS</text>
+  <rect class="bat" x="180" y="530" width="130" height="80" rx="6"/>
+  <text class="sm b" x="245" y="556" text-anchor="middle">LiFePO4 24 V</text><text class="sm" x="245" y="572" text-anchor="middle">25,6 V · 100 Ah</text><text class="sm" x="245" y="588" text-anchor="middle">2,56 kWh · BMS</text>
+  <path class="dcp" d="M95 530 V508 M245 530 V508"/><path class="dcn" d="M95 610 V640 M245 610 V640"/>
+  <text class="note" x="30" y="490">Banco paralelo 5,12 kWh (mesmo modelo/lote)</text>
+
+  <path class="dcp" d="M330 504 H360"/>
+  <rect class="prot" x="360" y="488" width="70" height="32" rx="4"/><text class="sm b" x="395" y="508" text-anchor="middle">T 200 A</text>
+  <path class="dcp" d="M430 504 H450"/>
+  <path class="dcn" d="M330 644 H360"/>
+  <rect class="prot" x="360" y="630" width="70" height="28" rx="4"/><text class="sm b" x="395" y="648" text-anchor="middle">Shunt</text>
+  <path class="dcn" d="M430 644 H450"/>
+  <rect class="prot" x="450" y="486" width="100" height="174" rx="6"/>
+  <text class="sm b" x="500" y="560" text-anchor="middle">Disj. DC 2P</text><text class="sm" x="500" y="576" text-anchor="middle">250 A</text>
+  <path class="dcp" d="M550 504 H560 V450"/><path class="dcn" d="M550 644 H620 V450"/>
+  <text class="note" x="640" y="500">DC: cabo 50 mm² ≤ 1,5 m</text>
+  <text class="note" x="640" y="514">torque 2–3 N·m · sem graxa antioxidante</text>
+  <text class="note" x="640" y="528">fusível Classe T próximo à bateria (+)</text>
+
+  <!-- PE -->
+  <path class="pe" d="M710 420 H900 V560"/>
+  <rect class="box" x="760" y="560" width="280" height="30" rx="4"/>
+  <text class="sm b" x="900" y="580" text-anchor="middle">BARRAMENTO PE → CHASSI / TERRA</text>
+  <text class="note" x="760" y="610">Ligar aqui: PE do AC IN/OUT, carcaça do inversor, DPS,</text>
+  <text class="note" x="760" y="624">molduras dos módulos e negativo do sistema (ponto único).</text>
+
+  <!-- Legenda -->
+  <rect class="box" x="760" y="250" width="300" height="180" rx="6" style="fill:none;stroke-dasharray:4 3"/>
+  <text class="sm b" x="772" y="270">Legenda</text>
+  <path class="dcp" d="M772 285 H812"/><text class="sm" x="820" y="289">DC positivo (vermelho)</text>
+  <path class="dcn" d="M772 305 H812"/><text class="sm" x="820" y="309">DC negativo (preto)</text>
+  <path class="acl" d="M772 325 H812"/><text class="sm" x="820" y="329">Fase L (marrom/preto)</text>
+  <path class="acn" d="M772 345 H812"/><text class="sm" x="820" y="349">Neutro N (azul)</text>
+  <path class="pe" d="M772 365 H812"/><text class="sm" x="820" y="369">Terra PE (verde-amarelo)</text>
+  <text class="sm" x="772" y="392">Fluxo: Sol/Gerador → banco → cargas</text>
+  <text class="sm" x="772" y="408">Prioridade sugerida: SBU (prog. 01)</text>
+  <text class="sm" x="772" y="423">Gerador entra como “utility”</text>
+</svg>
+    </div>
+    <p style="color:var(--muted);font-size:13px">Esquema de referência. A instalação deve ser executada e validada por profissional habilitado (NBR 5410 / NBR 16690 no que se aplicar) e conferida contra o manual do inversor.</p>
+  </section>
+
+  <section id="gerador">
+    <h2>Interligação do gerador auxiliar</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="margin-top:0">Como ligar</h3>
+        <ul>
+          <li>O gerador entra pela <strong>mesma entrada AC IN</strong> do inversor, através de uma <strong>chave reversora bipolar 0–I–II</strong> com intertravamento mecânico. Com ela, rede do camping e gerador nunca ficam ligados ao mesmo tempo, e neutro e fase são seccionados juntos (evita conflito de neutro/terra).</li>
+          <li>Configurar <code>03 = GEN</code> (faixa 170–280 V, tolerante a gerador), <code>08 = 220 V</code> e <code>09 = 60 Hz</code>.</li>
+          <li>Limitar a corrente de carga pela rede/gerador no programa <code>11</code> para o gerador não sobrecarregar (o padrão de fábrica é 30 A, ≈ 0,85 kW DC).</li>
+          <li>Inversor em modo <code>SBU</code>: usa sol e bateria e só recorre ao gerador quando a bateria cai ao ponto do programa <code>12</code> (com lítio sem comunicação).</li>
+          <li>Prefira gerador <strong>inverter</strong> ou com AVR; o inversor tolera 170–280 V e 40–65 Hz, mas geradores instáveis podem causar transferências repetidas.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Dimensionamento (dinâmico)</h3>
+        <div id="genOut"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="config">
+    <h2>Configuração do inversor (LCD)</h2>
+    <p>Segure <kbd>ENTER</kbd> por 3 s para entrar no modo de programação. Faça o ajuste com o inversor sem carga e reinicie ao final (manual, p. 9 e 21–22). Valores para banco LiFePO4 24 V (8S) <em>sem comunicação</em> com o BMS.</p>
+    <div class="card scroll"><table id="cfgTable"></table></div>
+  </section>
+
+  <section id="riscos">
+    <h2>Riscos e observações</h2>
+    <div class="card scroll"><table id="riskTable"></table></div>
+    <h3>Dicas práticas</h3>
+    <div class="card"><ul id="tips"></ul></div>
+  </section>
+
+  <section id="checklist">
+    <h2>Checklist de instalação</h2>
+    <div class="card">
+      <div class="progress" aria-label="Progresso"><i id="progBar"></i></div>
+      <p id="progTxt" style="margin:6px 0 0;color:var(--muted);font-size:13px"></p>
+      <ul class="check" id="checkList"></ul>
+    </div>
+  </section>
+
+  <section id="fontes">
+    <h2>Fontes e premissas</h2>
+    <div class="card">
+      <ul>
+        <li>Manual do usuário Hybrid Solar Inverter/Charger 4.2 kVA 230 Vac (arquivo <em>InversorHibrido.pdf</em>, ref. 371-00108-00): tabelas 1–4, p. 3–7, 9–14, 18–22, 28.</li>
+        <li>Baterias: captura de tela de <a href="https://belenus.com.br/produtos/detalhes/4/energia%20solar/2631/armazenamento/baterias/bateria%20baixa%20tens%C3%A3o">belenus.com.br — Bateria baixa tensão</a>.</li>
+        <li>Módulos: <a href="https://www.neosolar.com.br/loja/kit-painel-solar-fotovoltaico-730w-znshine-zxn8-bd132.html">NeoSolar — Kit com 2 painéis ZNShine ZXN8-BD132 730 W</a>; especificações elétricas conforme ficha do produto (Voc 49,5 V, Vmp 41,7 V, Isc 18,51 A, Imp 17,51 A, 2384 × 1303 × 33 mm, 40,5 kg).</li>
+        <li><strong>Premissas:</strong> coeficientes de temperatura típicos TOPCon (Voc −0,25 %/°C, Vmp −0,29 %/°C) por não constarem na ficha consultada; HSP de partida 5,0 kWh/m²/dia e desempenho global 0,75 (confirme o HSP local no CRESESB/SunData); preços do inversor, módulos, banco 24 V e acessórios são estimativas editáveis.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">Projeto versionado em Git · testes com <code>npm test</code> · licença MIT. Ferramenta de apoio: não substitui projeto e ART de profissional habilitado.</div>
+</footer>
+
+<script src="src/equipment.js"></script>
+<script src="src/calc.js"></script>
+<script src="js/content.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
